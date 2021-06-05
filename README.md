@@ -15,8 +15,8 @@
 
 | repository                                                                   |                               github pages                                |        Technology        |
 | ---------------------------------------------------------------------------- | :-----------------------------------------------------------------------: | :----------------------: |
-| <a href="https://github.com/serhiihaniuk/findnpm">git npmSearch</a> <img width=200/>         |     <a href="https://serhiihaniuk.github.io/findnpm/"> npmSearch</a> <img width=200/>     | react, redux, typescript |
-| <a href="https://github.com/serhiihaniuk/mvshop">git MV Shop</a>            <img width=200/> |      <a href="https://serhiihaniuk.github.io/mvshop/"> MV Shop</a>     <img width=200/>   |      react, redux,       |
+| <a href="https://github.com/serhiihaniuk/findnpm">git npmSearch</a> <img width=200/>         |<a href="https://serhiihaniuk.github.io/findnpm/"> npmSearch</a> <img width=200/>     | react, redux, typescript |
+| <a href="https://github.com/serhiihaniuk/mvshop">git MV Shop</a>            <img width=200/> |<a href="https://serhiihaniuk.github.io/mvshop/"> MV Shop</a>     <img width=200/>   |      react, redux,       |
 | <a href="https://github.com/serhiihaniuk/FlyboardKiev-">git FlyboardKiev</a><img width=200/> |<a href="https://github.com/serhiihaniuk/FlyboardKiev-"> FlyboardKiev</a>  <img width=200/>| Swiper fullpage website  |
 
 </div>
