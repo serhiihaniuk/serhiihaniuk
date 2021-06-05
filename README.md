@@ -23,7 +23,7 @@ CSS:
 
 
 <div style="width: 100%">
-{.foo table {
+{:.foo table {
   width: 100%;
 }}
 
