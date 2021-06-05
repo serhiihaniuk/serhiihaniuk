@@ -17,7 +17,7 @@
 <thead>
 <tr class="w3-white">
 <th width="30%">Source code</th>
-<th width="60%">GitHub Pages</th>
+<th width="90%">GitHub Pages</th>
 
 </tr>
 </thead>
