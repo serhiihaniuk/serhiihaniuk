@@ -11,20 +11,21 @@
 
 ### My Projects:
 
+<div class="foo">
+
+Header | header
+------ | -----
+Bar | bar
+
+</div>
+CSS:
+
+
+
 <div style="width: 100%">
-
- <style>
-table th:first-of-type {
-    width: 33%;
-}
-table th:nth-of-type(2) {
-    width: 33%;
-}
-table th:nth-of-type(3) {
-    width: 33%;
-}
-
-</style>
+{.foo table {
+  width: 100%;
+}}
 
 | repository                                                                   |                               github pages                                |        Technology        |
 | ---------------------------------------------------------------------------- | :-----------------------------------------------------------------------: | :----------------------: |
