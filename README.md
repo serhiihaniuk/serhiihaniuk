@@ -11,7 +11,20 @@
 
 ### My Projects:
 
-<div style="width:100%">
+<div style="width: 100%">
+
+ <style>
+table th:first-of-type {
+    width: 33%;
+}
+table th:nth-of-type(2) {
+    width: 33%;
+}
+table th:nth-of-type(3) {
+    width: 33%;
+}
+
+</style>
 
 | repository                                                                   |                               github pages                                |        Technology        |
 | ---------------------------------------------------------------------------- | :-----------------------------------------------------------------------: | :----------------------: |
