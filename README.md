@@ -1,28 +1,5 @@
 ## Hello!
 
-### Skills:
-
--   JavaScript, TypeScript
--   React, Redux
--   Html
--   CSS, SCSS,
--   Git, Webpack, Gulp
--   NodeJS
-
-### My Projects:
-
-<div style="width: 100%">
-
-| repository                                                                   |                               github pages                                |        Technology        |
-| ---------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ---------------------- |
- | <a href="https://github.com/serhiihaniuk/codehere">git CodeHere</a> <img width=200/>|<a href="https://serhiihaniuk.github.io/codehere/">CodeHere</a><img width=200/>     | react, typescript |
-| <a href="https://github.com/serhiihaniuk/findnpm">git npmSearch</a> <img width=200/>|<a href="https://serhiihaniuk.github.io/findnpm/">npmSearch</a><img width=200/>     | react, redux, typescript |
-| <a href="https://github.com/serhiihaniuk/mvshop">git MV Shop</a>            <img width=200/>|<a href="https://serhiihaniuk.github.io/mvshop/">MVShop</a><img width=200/>   |      react, redux,       |
-| <a href="https://github.com/serhiihaniuk/FlyboardKiev-">git FlyboardKiev</a><img width=200/>|<a href="https://serhiihaniuk.github.io/FlyboardKiev-/app/index.html">FlyboardKiev</a>  <img width=200/>| Swiper fullpage website  |
-
-</div>
-</br>
-
 <p>
  
 
