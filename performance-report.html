@@ -1,0 +1,1774 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Streaming Performance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+    />
+    <style>
+      /* Layout: one document column with ruled sections. Charts and tables sit on the page;
+   the interactive sizing calculator is the only boxed element. */
+      :root {
+        color-scheme: light;
+        --bg: #f6f7f9;
+        --raised: #ffffff;
+        --ink: #14171c;
+        --ink-2: #4a5160;
+        --muted: #737b8a;
+        --rule: #dfe3ea;
+        --axis: #c4cad4;
+        --accent: #2a78d6;
+        --s-before: #9aa1ad;
+        --s1: #2a78d6;
+        --s2: #eb6834;
+        --s3: #1baf7a;
+        --track: #d9dde4;
+        --good: #0b6b2f;
+        --good-bg: #e3f2e8;
+        --warn: #8a5a00;
+        --warn-bg: #fbefd6;
+        --info: #1c5cab;
+        --info-bg: #e5eefa;
+        --crit: #c43a3a;
+        --shadow: 0 12px 32px -16px rgba(20, 23, 28, 0.28);
+        --f-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+        --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+        --f-data: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          color-scheme: dark;
+          --bg: #111418;
+          --raised: #191d23;
+          --ink: #e9ecf1;
+          --ink-2: #b4bbc7;
+          --muted: #8a92a0;
+          --rule: #262b33;
+          --axis: #3a404b;
+          --accent: #3987e5;
+          --s-before: #6e7582;
+          --s1: #3987e5;
+          --s2: #d95926;
+          --s3: #199e70;
+          --track: #2c323c;
+          --good: #4cc77a;
+          --good-bg: #132a1d;
+          --warn: #f0b43c;
+          --warn-bg: #2e2512;
+          --info: #86b6ef;
+          --info-bg: #16263b;
+          --crit: #ec6b6b;
+          --shadow: 0 14px 34px -16px rgba(0, 0, 0, 0.7);
+        }
+      }
+      :root[data-theme="dark"] {
+        color-scheme: dark;
+        --bg: #111418;
+        --raised: #191d23;
+        --ink: #e9ecf1;
+        --ink-2: #b4bbc7;
+        --muted: #8a92a0;
+        --rule: #262b33;
+        --axis: #3a404b;
+        --accent: #3987e5;
+        --s-before: #6e7582;
+        --s1: #3987e5;
+        --s2: #d95926;
+        --s3: #199e70;
+        --track: #2c323c;
+        --good: #4cc77a;
+        --good-bg: #132a1d;
+        --warn: #f0b43c;
+        --warn-bg: #2e2512;
+        --info: #86b6ef;
+        --info-bg: #16263b;
+        --crit: #ec6b6b;
+        --shadow: 0 14px 34px -16px rgba(0, 0, 0, 0.7);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 15.5px/1.6 var(--f-body);
+        -webkit-font-smoothing: antialiased;
+      }
+      .page {
+        max-width: 1060px;
+        margin: 0 auto;
+        padding-block: 40px 72px;
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: var(--f-display);
+        text-wrap: balance;
+        margin: 0;
+      }
+      p {
+        margin: 0;
+      }
+      code {
+        font-family: var(--f-data);
+        font-size: 0.86em;
+        color: var(--ink-2);
+      }
+      .num {
+        font-family: var(--f-data);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* Header */
+      .head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      .kicker {
+        font: 500 12px/1 var(--f-data);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      h1 {
+        font-size: clamp(34px, 5vw, 48px);
+        line-height: 1.02;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        margin-top: 10px;
+      }
+      .intro {
+        margin-top: 12px;
+        color: var(--ink-2);
+        max-width: 64ch;
+      }
+      .theme {
+        flex: none;
+        border: 1px solid var(--rule);
+        background: transparent;
+        color: var(--ink-2);
+        border-radius: 6px;
+        padding: 6px 10px;
+        font: 500 12px/1 var(--f-data);
+        cursor: pointer;
+      }
+      .theme:hover {
+        color: var(--ink);
+        border-color: var(--axis);
+      }
+      .theme:focus-visible,
+      summary:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .meta {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 6px 22px;
+        margin: 22px 0 0;
+        padding: 14px 0;
+        border-block: 1px solid var(--rule);
+        font-size: 13.5px;
+      }
+      .meta dt {
+        font: 500 11.5px/1.9 var(--f-data);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .meta dd {
+        margin: 0;
+        color: var(--ink-2);
+      }
+
+      /* Sections */
+      section {
+        margin-top: 52px;
+      }
+      section > h2 {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.005em;
+      }
+      .lead {
+        margin-top: 8px;
+        color: var(--ink-2);
+        max-width: 72ch;
+      }
+      .findings {
+        margin: 16px 0 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 10px;
+        max-width: 78ch;
+      }
+      .findings li {
+        display: grid;
+        grid-template-columns: 18px 1fr;
+        gap: 10px;
+      }
+      .findings li::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        margin-top: 9px;
+        border-radius: 2px;
+        background: var(--accent);
+      }
+
+      /* Key figures strip */
+      .figures {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-top: 22px;
+        border-top: 1px solid var(--ink);
+      }
+      @media (max-width: 760px) {
+        .figures {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 440px) {
+        .figures {
+          grid-template-columns: 1fr;
+        }
+      }
+      .fig {
+        padding: 16px 18px 18px 0;
+        border-bottom: 1px solid var(--rule);
+        display: grid;
+        gap: 6px;
+        align-content: start;
+      }
+      .figures .fig {
+        padding-left: 18px;
+        border-left: 1px solid var(--rule);
+      }
+      .figures .fig:nth-child(3n + 1) {
+        padding-left: 0;
+        border-left: none;
+      }
+      @media (max-width: 760px) {
+        .figures .fig {
+          padding-left: 18px;
+          border-left: 1px solid var(--rule);
+        }
+        .figures .fig:nth-child(3n + 1) {
+          padding-left: 18px;
+          border-left: 1px solid var(--rule);
+        }
+        .figures .fig:nth-child(2n + 1) {
+          padding-left: 0;
+          border-left: none;
+        }
+      }
+      @media (max-width: 440px) {
+        .figures .fig {
+          padding-left: 0 !important;
+          border-left: none !important;
+        }
+      }
+      .f-label {
+        font-size: 13px;
+        color: var(--ink-2);
+      }
+      .f-row {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .f-value {
+        font: 700 34px/1.05 var(--f-display);
+        letter-spacing: -0.01em;
+      }
+      .f-from {
+        font: 400 12.5px/1 var(--f-data);
+        color: var(--muted);
+      }
+      .delta {
+        font: 500 12px/1 var(--f-data);
+        color: var(--good);
+        background: var(--good-bg);
+        padding: 3px 7px;
+        border-radius: 4px;
+        width: max-content;
+      }
+      .spark {
+        display: flex;
+        gap: 3px;
+        align-items: flex-end;
+        height: 26px;
+        margin-top: 2px;
+      }
+      .spark span {
+        flex: 1;
+        max-width: 44px;
+        border-radius: 2px 2px 0 0;
+        background: var(--track);
+        min-height: 2px;
+      }
+      .spark span.on {
+        background: var(--accent);
+      }
+      .f-note {
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+
+      /* Tables */
+      .tablewrap {
+        overflow-x: auto;
+        margin-top: 16px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 10px 12px 10px 0;
+        border-bottom: 1px solid var(--rule);
+        vertical-align: top;
+      }
+      thead th {
+        font: 500 11.5px/1.3 var(--f-data);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+        border-bottom: 1px solid var(--ink);
+      }
+      td.n,
+      th.n {
+        text-align: right;
+        font-family: var(--f-data);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .build {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .build i {
+        width: 14px;
+        height: 3px;
+        border-radius: 2px;
+        display: inline-block;
+      }
+      .dim {
+        color: var(--muted);
+      }
+      .rel td:first-child {
+        font-weight: 600;
+        min-width: 200px;
+      }
+      .rel td.res {
+        min-width: 240px;
+      }
+      .rel .was {
+        display: block;
+        margin-top: 3px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .pill {
+        display: inline-block;
+        font: 500 11.5px/1 var(--f-data);
+        padding: 4px 8px;
+        border-radius: 4px;
+        white-space: nowrap;
+      }
+      .pill.ok {
+        color: var(--good);
+        background: var(--good-bg);
+      }
+      .pill.check {
+        color: var(--warn);
+        background: var(--warn-bg);
+      }
+      .pill.info {
+        color: var(--info);
+        background: var(--info-bg);
+      }
+
+      /* Charts */
+      .charts {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 34px 40px;
+        margin-top: 22px;
+      }
+      @media (max-width: 820px) {
+        .charts {
+          grid-template-columns: 1fr;
+        }
+      }
+      .chart {
+        margin: 0;
+        position: relative;
+        min-width: 0;
+        padding-top: 14px;
+        border-top: 1px solid var(--rule);
+      }
+      .chart figcaption {
+        font: 600 17px/1.3 var(--f-display);
+      }
+      .chart .sub {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 14px;
+        margin: 10px 0 4px;
+        font-size: 12.5px;
+        color: var(--ink-2);
+      }
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend i {
+        width: 16px;
+        height: 2px;
+        border-radius: 2px;
+        display: inline-block;
+      }
+      .chart svg {
+        width: 100%;
+        height: auto;
+        display: block;
+        overflow: visible;
+        outline: none;
+        touch-action: pan-y;
+      }
+      .chart svg:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 4px;
+        border-radius: 4px;
+      }
+      .gl {
+        stroke: var(--rule);
+        stroke-width: 1;
+      }
+      .base {
+        stroke: var(--axis);
+        stroke-width: 1;
+      }
+      .tick {
+        fill: var(--muted);
+        font: 11px var(--f-data);
+      }
+      .axis-title {
+        fill: var(--muted);
+        font-size: 11.5px;
+      }
+      .line {
+        fill: none;
+        stroke-width: 2;
+        stroke-linejoin: round;
+        stroke-linecap: round;
+      }
+      .dot {
+        stroke: var(--bg);
+        stroke-width: 2;
+      }
+      .end-label {
+        fill: var(--ink-2);
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .limit {
+        stroke: var(--crit);
+        stroke-width: 1.25;
+        stroke-dasharray: 4 4;
+      }
+      .limit-label {
+        fill: var(--ink-2);
+        font-size: 11.5px;
+      }
+      .cross {
+        stroke: var(--axis);
+        stroke-width: 1;
+      }
+      .tip {
+        position: absolute;
+        pointer-events: none;
+        background: var(--raised);
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        box-shadow: var(--shadow);
+        padding: 8px 10px;
+        font-size: 12.5px;
+        min-width: 160px;
+        opacity: 0;
+        transition: opacity 0.12s;
+        z-index: 2;
+      }
+      .tip.show {
+        opacity: 1;
+      }
+      .tip .h {
+        font: 500 11px/1.4 var(--f-data);
+        color: var(--muted);
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .tip .r {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        line-height: 1.75;
+      }
+      .tip .r i {
+        width: 12px;
+        height: 2px;
+        border-radius: 2px;
+        display: inline-block;
+        flex: none;
+      }
+      .tip .r b {
+        font-family: var(--f-data);
+        font-weight: 500;
+        min-width: 72px;
+      }
+      .tip .r span {
+        color: var(--ink-2);
+      }
+      .fig-note {
+        font-size: 13.5px;
+        color: var(--ink-2);
+        margin-top: 8px;
+      }
+      details.tv {
+        margin-top: 8px;
+      }
+      details.tv summary {
+        cursor: pointer;
+        font: 500 12px/1.6 var(--f-data);
+        color: var(--muted);
+      }
+      details.tv table {
+        font-size: 13px;
+      }
+      .latest {
+        margin-top: 26px;
+        padding: 14px 0 0;
+        border-top: 1px solid var(--ink);
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 6px 20px;
+        align-items: baseline;
+      }
+      @media (max-width: 560px) {
+        .latest {
+          grid-template-columns: 1fr;
+        }
+      }
+      .latest .k {
+        font: 500 11.5px/1.6 var(--f-data);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .latest p {
+        color: var(--ink-2);
+      }
+      .latest b {
+        color: var(--ink);
+      }
+
+      /* Cost bars */
+      .cmp {
+        margin-top: 16px;
+      }
+      .cmp-group {
+        font: 500 11.5px/1.3 var(--f-data);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding: 16px 0 6px;
+        border-bottom: 1px solid var(--ink);
+      }
+      .cmp-row {
+        display: grid;
+        grid-template-columns: minmax(170px, 1fr) minmax(0, 2.6fr) 64px;
+        gap: 16px;
+        align-items: center;
+        padding: 11px 0;
+        border-bottom: 1px solid var(--rule);
+      }
+      @media (max-width: 640px) {
+        .cmp-row {
+          grid-template-columns: 1fr 64px;
+        }
+        .cmp-bars {
+          grid-column: 1 / -1;
+          grid-row: 2;
+        }
+      }
+      .cmp-name {
+        font-size: 14.5px;
+        font-weight: 500;
+      }
+      .cmp-name small {
+        display: block;
+        font-weight: 400;
+        color: var(--muted);
+        font-size: 12.5px;
+      }
+      .cmp-bars {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+      }
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font: 12px var(--f-data);
+        color: var(--ink-2);
+      }
+      .bar .fill {
+        height: 8px;
+        border-radius: 0 3px 3px 0;
+        min-width: 3px;
+      }
+      .bar.b .fill {
+        background: var(--s-before);
+      }
+      .bar.n .fill {
+        background: var(--accent);
+      }
+      .cmp-delta {
+        justify-self: end;
+      }
+
+      /* Sizing panel: the one boxed element, because it takes input */
+      .panel {
+        margin-top: 16px;
+        background: var(--raised);
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        padding: 18px 20px;
+      }
+      .calc {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        align-items: end;
+      }
+      .calc label {
+        font-size: 12.5px;
+        color: var(--ink-2);
+      }
+      .calc input {
+        width: 100%;
+        margin-top: 5px;
+        padding: 8px 10px;
+        border: 1px solid var(--rule);
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--ink);
+        font: 14px var(--f-data);
+      }
+      .calc input:focus {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      .calc input[aria-invalid="true"] {
+        border-color: var(--crit);
+      }
+      .outs {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        margin-top: 18px;
+        border-top: 1px solid var(--rule);
+      }
+      .out {
+        padding: 12px 14px 2px 0;
+      }
+      .out .v {
+        font: 700 26px/1.1 var(--f-display);
+      }
+      .out .l {
+        font-size: 12.5px;
+        color: var(--ink-2);
+        margin-top: 2px;
+      }
+      .basis {
+        font-size: 12.5px;
+        color: var(--muted);
+        margin-top: 14px;
+      }
+
+      .checks {
+        margin: 14px 0 0;
+        padding-left: 20px;
+        max-width: 78ch;
+        display: grid;
+        gap: 10px;
+      }
+      .checks li::marker {
+        color: var(--muted);
+      }
+      .checks span {
+        color: var(--ink-2);
+      }
+
+      footer {
+        margin-top: 56px;
+        padding-top: 16px;
+        border-top: 1px solid var(--rule);
+        font-size: 13px;
+        color: var(--ink-2);
+        display: grid;
+        gap: 8px;
+      }
+      footer p {
+        max-width: 90ch;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <div class="head">
+          <div class="kicker">Side Chat · stress tests</div>
+          <button class="theme" id="themeBtn" type="button">Theme</button>
+        </div>
+        <h1>Streaming performance</h1>
+        <p class="intro">
+          Results for the streaming path, from the original design to the current build. Every build
+          ran the same workload: a 14-second model answer on a 1-core service instance.
+        </p>
+        <dl class="meta">
+          <dt>Environment</dt>
+          <dd>Service instances with 1 CPU and 1 GB each · PostgreSQL with 2 CPUs</dd>
+          <dt>Model</dt>
+          <dd>
+            Fake model calibrated to gpt-5.6-luna for length, chunk sizes and timing; real-model
+            runs where stated
+          </dd>
+          <dt>Builds</dt>
+          <dd>Before · v1 · v2 · v3, then the stability and gap fixes</dd>
+          <dt>Updated</dt>
+          <dd class="num">2026-10-21</dd>
+        </dl>
+      </header>
+
+      <section aria-labelledby="sum-h">
+        <h2 id="sum-h">Summary</h2>
+        <ul class="findings">
+          <li>
+            <span
+              >One 1-core instance carries <b>64 live long answers</b> within about 2 s of model
+              time, up from 16.</span
+            >
+          </li>
+          <li>
+            <span
+              >At the same load, an answer costs <b>73% less service CPU</b> and
+              <b>87% less database CPU</b>. The limit is now the instance's CPU, so capacity grows
+              by adding instances.</span
+            >
+          </li>
+          <li>
+            <span
+              >On the current build, <b>no accepted answer failed</b> in any overload,
+              three-instance or database-restart run.</span
+            >
+          </li>
+        </ul>
+        <div class="figures" id="figures"></div>
+      </section>
+
+      <section aria-labelledby="builds-h">
+        <h2 id="builds-h">Builds compared</h2>
+        <p class="lead">
+          Each build removed the largest cost found in the previous measurement. The line colors
+          match the chart series below.
+        </p>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Build</th>
+                <th>What changed</th>
+                <th class="n">Commits per answer</th>
+                <th class="n">Service CPU per answer</th>
+                <th class="n">Live answers per instance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <span class="build"><i style="background: var(--s-before)"></i>Before</span>
+                </td>
+                <td>
+                  Every model chunk saved as its own row, committed every 50 ms. Each open tab read
+                  the answer back from the database.
+                </td>
+                <td class="n">456</td>
+                <td class="n">871 ms</td>
+                <td class="n">16</td>
+              </tr>
+              <tr>
+                <td>
+                  <span class="build"><i style="background: var(--s3)"></i>v1</span>
+                </td>
+                <td>Chunks merged into larger rows, saved every 250 ms.</td>
+                <td class="n">139</td>
+                <td class="n">442 ms</td>
+                <td class="n">48</td>
+              </tr>
+              <tr>
+                <td>
+                  <span class="build"><i style="background: var(--s2)"></i>v2</span>
+                </td>
+                <td>
+                  The asking tab streams from the generating instance's memory. The answer is saved
+                  once per step, and other tabs catch up per step.
+                </td>
+                <td class="n">1 per step</td>
+                <td class="n">315 ms</td>
+                <td class="n">48</td>
+              </tr>
+              <tr>
+                <td>
+                  <span class="build"><i style="background: var(--s1)"></i>v3</span>
+                </td>
+                <td>
+                  Small chunks merge into one part per 100 ms before they enter the pipeline. The
+                  first chunk of each block is never held back.
+                </td>
+                <td class="n">1 per step</td>
+                <td class="n">238 ms</td>
+                <td class="n">64</td>
+              </tr>
+              <tr>
+                <td>
+                  <span class="build"><i style="background: var(--good)"></i>Fixes</span>
+                </td>
+                <td>
+                  Acceptance queue with clean <code>503</code> refusals, retries with jitter,
+                  bounded held output, recovery from lost database connections. The cap rose from 16
+                  to 64.
+                </td>
+                <td class="n">1 per step</td>
+                <td class="n dim">as v3</td>
+                <td class="n">64</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="fig-note">
+          Service CPU at 16 answers at once. v1 is the mean of three runs per load, v2 one run, v3
+          the mean of two.
+        </p>
+      </section>
+
+      <section aria-labelledby="cap-h">
+        <h2 id="cap-h">Capacity</h2>
+        <p class="lead">
+          One instance, one reader per answer, load rising from 16 to 128 answers streaming at once.
+          Hover a chart, or focus it and use the arrow keys, to read every build at one load.
+        </p>
+        <div class="charts">
+          <figure class="chart" data-chart="time"></figure>
+          <figure class="chart" data-chart="tput"></figure>
+          <figure class="chart" data-chart="svc"></figure>
+          <figure class="chart" data-chart="db"></figure>
+        </div>
+        <div class="latest">
+          <div class="k">Current build</div>
+          <p>
+            After the stability and gap fixes, one instance at 64 at once completes
+            <b>4.3 answers per second</b>, an answer takes <b>14.8 s</b>, and the first text appears
+            in <b>2.1 s</b>. At 128 at once it completes 6.9 per second with 0 failed answers.
+          </p>
+        </div>
+      </section>
+
+      <section aria-labelledby="mem-h">
+        <h2 id="mem-h">Memory</h2>
+        <p class="lead">
+          Peak memory of one instance against answers streaming at once. Memory is not the limit.
+        </p>
+        <div class="charts">
+          <figure class="chart" data-chart="mem"></figure>
+          <div class="chart" style="border-top-color: transparent">
+            <ul class="findings" style="margin-top: 6px">
+              <li>
+                <span
+                  >A live long answer costs about <b>1.1 MB</b> in v3, down from 2.1 MB in v2, where
+                  every small chunk was its own object.</span
+                >
+              </li>
+              <li>
+                <span
+                  >An idle instance uses about <b>195 MB</b>. By memory alone, about 760 live
+                  answers would fit in 1 GB; CPU stops the instance near 64.</span
+                >
+              </li>
+              <li>
+                <span
+                  >Held output is capped at <b>4 MiB per answer</b> and <b>256 MiB per instance</b>,
+                  so even the worst case stays inside the container.</span
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="cost-h">
+        <h2 id="cost-h">Cost per answer</h2>
+        <p class="lead">
+          One long answer, before and after, on the same workload. Each row is scaled to its own
+          before value.
+        </p>
+        <div class="cmp" id="cmp"></div>
+        <p class="fig-note">
+          Commits per answer fell from 456 to one per model step; a plain answer is a single commit.
+          In larger runs the kept rows settle at about 19 KB per answer. Most of that is
+          bookkeeping, such as the saved model input that lets an approval or Retry continue
+          exactly.
+        </p>
+      </section>
+
+      <section aria-labelledby="rel-h">
+        <h2 id="rel-h">Reliability</h2>
+        <p class="lead">
+          Failure and overload runs on the current build unless noted. A clean refusal is
+          <code>503 service_busy</code> with a spread <code>Retry-After</code>, which the widget
+          resends automatically.
+        </p>
+        <div class="tablewrap">
+          <table class="rel">
+            <thead>
+              <tr>
+                <th>Scenario</th>
+                <th>Result</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="rel"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="size-h">
+        <h2 id="size-h">Sizing</h2>
+        <p class="lead">
+          Enter expected usage; the outputs apply the measured capacity of the current build.
+        </p>
+        <div class="panel">
+          <div class="calc">
+            <label for="people"
+              >People<input id="people" type="number" inputmode="numeric" value="1500" min="1"
+            /></label>
+            <label for="active"
+              >Active at peak, %<input
+                id="active"
+                type="number"
+                inputmode="numeric"
+                value="50"
+                min="1"
+                max="100"
+            /></label>
+            <label for="mph"
+              >Messages per hour per active person<input
+                id="mph"
+                type="number"
+                inputmode="decimal"
+                value="10"
+                min="0.1"
+                step="any"
+            /></label>
+            <label for="mpd"
+              >Messages per workday per person<input
+                id="mpd"
+                type="number"
+                inputmode="decimal"
+                value="15"
+                min="0"
+                step="any"
+            /></label>
+            <label for="usd"
+              >Model cost per answer, $<input
+                id="usd"
+                type="number"
+                inputmode="decimal"
+                value="0.002"
+                min="0"
+                step="0.0005"
+            /></label>
+          </div>
+          <div class="outs" id="outs" aria-live="polite"></div>
+          <p class="basis" id="basis"></p>
+        </div>
+      </section>
+
+      <section aria-labelledby="next-h">
+        <h2 id="next-h">Before raising the cap</h2>
+        <ol class="checks">
+          <li>
+            <b>Re-measure the per-instance cap on the production hardware.</b>
+            <span
+              >These figures come from 1-core local containers; keep <code>maxActiveTurns</code> at
+              64 until the same load passes there.</span
+            >
+          </li>
+          <li>
+            <b>Plan database connections.</b>
+            <span
+              >Each instance opens 19: 16 runtime, 2 maintenance, and 1 listener that needs a direct
+              connection, not a pooled one.</span
+            >
+          </li>
+          <li>
+            <b>Confirm long streams pass the gateway.</b>
+            <span
+              >An answer is one long-lived POST response; proxies must not buffer it or time it out
+              early.</span
+            >
+          </li>
+        </ol>
+      </section>
+
+      <footer>
+        <p>
+          <b>Method.</b> Local containers, each service instance limited to 1 CPU and 1 GB,
+          PostgreSQL on 2 CPUs. "At once" counts answers streaming at the same time; "answers per
+          second" counts completed answers. The fake model replays answers calibrated to
+          gpt-5.6-luna; rows marked "real model" used the real provider.
+        </p>
+        <p>
+          Not covered: production hardware, network latency to the model provider, and gateway
+          behavior.
+        </p>
+      </footer>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+        const root = document.documentElement,
+          btn = document.getElementById("themeBtn");
+        function stored() {
+          try {
+            return localStorage.getItem("perf-theme");
+          } catch (e) {
+            return null;
+          }
+        }
+        function store(v) {
+          try {
+            localStorage.setItem("perf-theme", v);
+          } catch (e) {}
+        }
+        const saved = stored();
+        if (saved === "light" || saved === "dark") root.setAttribute("data-theme", saved);
+        function effective() {
+          const t = root.getAttribute("data-theme");
+          if (t) return t;
+          return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        function label() {
+          btn.setAttribute(
+            "aria-label",
+            "Switch to " + (effective() === "dark" ? "light" : "dark") + " theme",
+          );
+        }
+        btn.addEventListener("click", () => {
+          const next = effective() === "dark" ? "light" : "dark";
+          root.setAttribute("data-theme", next);
+          store(next);
+          label();
+        });
+        label();
+
+        const NS = "http://www.w3.org/2000/svg";
+        function el(tag, attrs, parent, text) {
+          const n = document.createElement(tag);
+          if (attrs) for (const k in attrs) n.setAttribute(k, attrs[k]);
+          if (text != null) n.textContent = text;
+          if (parent) parent.appendChild(n);
+          return n;
+        }
+        function sv(tag, attrs, parent, text) {
+          const n = document.createElementNS(NS, tag);
+          if (attrs) for (const k in attrs) n.setAttribute(k, attrs[k]);
+          if (text != null) n.textContent = text;
+          if (parent) parent.appendChild(n);
+          return n;
+        }
+        const fmtInt = (n) => Math.round(n).toLocaleString("en-US");
+
+        /* Key figures */
+        const BUILDS = ["Before", "v1", "v2", "v3"];
+        const FIGS = [
+          {
+            label: "Live long answers per instance",
+            values: [16, 48, 48, 64],
+            unit: "",
+            better: "up",
+            note: "Answers within about 2 s of model time",
+          },
+          {
+            label: "Answers completed per second",
+            values: [1.1, 2.4, 2.4, 3.3],
+            unit: "/s",
+            better: "up",
+            note: "At each build's live capacity; 7.2/s at 128 at once",
+          },
+          {
+            label: "Service CPU per answer",
+            values: [871, 442, 315, 238],
+            unit: " ms",
+            better: "down",
+            note: "16 answers at once",
+          },
+          {
+            label: "Database CPU per answer",
+            values: [548, 172, 69, 72],
+            unit: " ms",
+            better: "down",
+            note: "16 at once; about 270 live answers per database core",
+          },
+          {
+            label: "Memory per live answer",
+            values: [1.6, 1.5, 2.1, 1.1],
+            unit: " MB",
+            better: "down",
+            note: "Idle instance about 195 MB",
+          },
+          {
+            label: "Time to first text",
+            values: [1.7, 1.75, 1.52, 1.3],
+            unit: " s",
+            better: "down",
+            note: "Median, 16 answers at once",
+          },
+        ];
+        const figs = document.getElementById("figures");
+        for (const f of FIGS) {
+          const first = f.values[0],
+            last = f.values[f.values.length - 1];
+          const box = el("div", { class: "fig" }, figs);
+          el("div", { class: "f-label" }, box, f.label);
+          const row = el("div", { class: "f-row" }, box);
+          el("span", { class: "f-value" }, row, String(last) + f.unit);
+          el("span", { class: "f-from" }, row, "from " + first + f.unit);
+          const ratio = last / first;
+          el(
+            "span",
+            { class: "delta" },
+            box,
+            f.better === "up"
+              ? "↑ " + String(Math.round(ratio * 10) / 10).replace(/\.0$/, "") + "×"
+              : "↓ " + Math.round((1 - ratio) * 100) + "%",
+          );
+          const max = Math.max(...f.values);
+          const spark = el(
+            "div",
+            {
+              class: "spark",
+              role: "img",
+              "aria-label":
+                f.label +
+                " by build: " +
+                f.values.map((v, i) => BUILDS[i] + " " + v + f.unit).join(", "),
+            },
+            box,
+          );
+          f.values.forEach((v, i) => {
+            const s = el("span", { title: BUILDS[i] + ": " + v + f.unit }, spark);
+            s.style.height = Math.max(8, (v / max) * 100) + "%";
+            if (i === f.values.length - 1) s.className = "on";
+          });
+          el("div", { class: "f-note" }, box, f.note);
+        }
+
+        /* Line charts */
+        const SERIES = [
+          { id: "before", label: "Before", color: "var(--s-before)" },
+          { id: "v1", label: "v1", color: "var(--s3)" },
+          { id: "v2", label: "v2", color: "var(--s2)" },
+          { id: "v3", label: "v3", color: "var(--s1)" },
+        ];
+        const LOADS = [16, 24, 32, 48, 64, 96, 128];
+        const CHARTS = {
+          time: {
+            title: "Time per answer",
+            sub: "Median seconds · the model itself takes about 14 s",
+            yMax: 30,
+            yStep: 5,
+            fmt: (v) => v.toFixed(1) + " s",
+            yTick: (v) => String(v),
+            data: {
+              before: [15.0, 21.4, 26.8],
+              v1: [14.4, 14.9, 15.6, 17.0, 18.2],
+              v2: [14.3, 14.8, 15.3, 16.0, 17.0],
+              v3: [13.9, 14.4, 14.8, 15.6, 16.1, 17.8, 19.1],
+            },
+            note: "Before, answers slowed as soon as more than 16 streamed at once. v3 stays within 2.1 s of model time at 64 at once, and within 5.1 s at 128, where the CPU is full.",
+          },
+          tput: {
+            title: "Answers completed per second",
+            sub: "Throughput of one instance",
+            yMax: 8,
+            yStep: 2,
+            fmt: (v) => v.toFixed(2) + "/s",
+            yTick: (v) => String(v),
+            data: {
+              before: [1.07, 1.2, 1.12],
+              v1: [1.07, 1.6, 1.89, 2.41, 3.21],
+              v2: [1.07, 1.6, 2.13, 2.42, 3.22],
+              v3: [1.07, 1.6, 2.13, 2.54, 3.25, 4.85, 7.18],
+            },
+            note: "Before, throughput stalled at about 1.2 answers per second. Since v1 it grows with load; v3 reaches 7.2 per second at 128 at once.",
+          },
+          svc: {
+            title: "Service CPU",
+            sub: "Cores used by one instance",
+            yMax: 1.2,
+            yStep: 0.2,
+            fmt: (v) => v.toFixed(2) + " cores",
+            yTick: (v) => v.toFixed(1),
+            limit: { value: 1, label: "1 core per instance" },
+            data: {
+              before: [0.93, 0.97, 0.97],
+              v1: [0.47, 0.6, 0.74, 0.9, 0.98],
+              v2: [0.34, 0.41, 0.52, 0.66, 0.79],
+              v3: [0.25, 0.33, 0.4, 0.53, 0.63, 0.78, 0.86],
+            },
+            note: "Before, the service hit its 1-core limit at 16 answers at once; v1 reached it near 64. v3 uses about 0.6 cores at 64 and 0.9 only at 128.",
+          },
+          db: {
+            title: "Database CPU",
+            sub: "PostgreSQL cores used by one instance's load, of 2",
+            yMax: 1.2,
+            yStep: 0.2,
+            fmt: (v) => v.toFixed(2) + " cores",
+            yTick: (v) => v.toFixed(1),
+            data: {
+              before: [0.59, 0.57, 0.64],
+              v1: [0.18, 0.25, 0.3, 0.41, 0.49],
+              v2: [0.07, 0.09, 0.11, 0.13, 0.17],
+              v3: [0.08, 0.09, 0.11, 0.13, 0.17, 0.25, 0.29],
+            },
+            note: "Saving every chunk and reading it back cost about 0.6 database cores at 16 answers at once. Saving once per step costs about 72 ms per answer: 0.3 cores at 128 at once.",
+          },
+          mem: {
+            title: "Service memory at peak",
+            sub: "Resident memory of one instance, MB",
+            yMax: 1100,
+            yStep: 200,
+            fmt: (v) => fmtInt(v) + " MB",
+            yTick: (v) => (v >= 1000 ? v / 1000 + "K" : String(v)),
+            limit: { value: 1024, label: "container limit 1 GB" },
+            data: {
+              v1: [240, 246, 262, 291, 306],
+              v2: [218, 233, 261, 282, 320],
+              v3: [212, 224, 228, 248, 271, 290, 344],
+            },
+            note: "Memory was not recorded for the original design, so there is no before series.",
+          },
+        };
+        const W = 640,
+          H = 300,
+          M = { l: 44, r: 58, t: 14, b: 44 };
+        const xs = (v) => M.l + ((v - 16) / (128 - 16)) * (W - M.l - M.r);
+        function drawChart(fig, key) {
+          const c = CHARTS[key];
+          const present = SERIES.filter((s) => c.data[s.id]);
+          const ys = (v) => H - M.b - (v / c.yMax) * (H - M.t - M.b);
+          el("figcaption", null, fig, c.title);
+          el("p", { class: "sub" }, fig, c.sub);
+          const lg = el("div", { class: "legend", "aria-hidden": "true" }, fig);
+          for (const s of present) {
+            const it = el("span", null, lg);
+            el("i", { style: "background:" + s.color }, it);
+            it.appendChild(document.createTextNode(s.label));
+          }
+          const svg = sv(
+            "svg",
+            {
+              viewBox: "0 0 " + W + " " + H,
+              role: "img",
+              tabindex: "0",
+              "aria-label":
+                c.title +
+                ". Use the left and right arrow keys to read each load; a table view follows.",
+            },
+            fig,
+          );
+          for (let v = 0; v <= c.yMax + 1e-9; v += c.yStep) {
+            const y = ys(v);
+            sv("line", { x1: M.l, x2: W - M.r, y1: y, y2: y, class: v === 0 ? "base" : "gl" }, svg);
+            sv(
+              "text",
+              { x: M.l - 8, y: y + 4, "text-anchor": "end", class: "tick" },
+              svg,
+              c.yTick(Math.round(v * 100) / 100),
+            );
+          }
+          for (const L of LOADS)
+            sv(
+              "text",
+              { x: xs(L), y: H - M.b + 18, "text-anchor": "middle", class: "tick" },
+              svg,
+              String(L),
+            );
+          sv(
+            "text",
+            { x: (M.l + W - M.r) / 2, y: H - 6, "text-anchor": "middle", class: "axis-title" },
+            svg,
+            "answers streaming at once",
+          );
+          if (c.limit) {
+            const y = ys(c.limit.value);
+            sv("line", { x1: M.l, x2: W - M.r, y1: y, y2: y, class: "limit" }, svg);
+            sv(
+              "text",
+              { x: W - M.r - 4, y: y - 6, "text-anchor": "end", class: "limit-label" },
+              svg,
+              c.limit.label,
+            );
+          }
+          const cross = sv(
+            "line",
+            { x1: 0, x2: 0, y1: M.t, y2: H - M.b, class: "cross", visibility: "hidden" },
+            svg,
+          );
+          const dots = LOADS.map(() => []);
+          for (const s of present) {
+            const pts = c.data[s.id].map((v, i) => [xs(LOADS[i]), ys(v)]);
+            sv(
+              "path",
+              {
+                d: pts
+                  .map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + "," + p[1].toFixed(1))
+                  .join(" "),
+                class: "line",
+                style: "stroke:" + s.color,
+              },
+              svg,
+            );
+            pts.forEach((p, i) =>
+              dots[i].push(
+                sv(
+                  "circle",
+                  { cx: p[0], cy: p[1], r: 4, class: "dot", style: "fill:" + s.color },
+                  svg,
+                ),
+              ),
+            );
+          }
+          for (const id of ["before", "v3"]) {
+            const arr = c.data[id];
+            if (!arr) continue;
+            const i = arr.length - 1;
+            sv(
+              "text",
+              { x: xs(LOADS[i]) + 9, y: ys(arr[i]) + 4, class: "end-label" },
+              svg,
+              id === "v3" ? "v3" : "Before",
+            );
+          }
+          const tip = el("div", { class: "tip", role: "status", "aria-live": "polite" }, fig);
+          let cur = -1;
+          function show(i) {
+            cur = i;
+            const x = xs(LOADS[i]);
+            cross.setAttribute("x1", x);
+            cross.setAttribute("x2", x);
+            cross.setAttribute("visibility", "visible");
+            dots.forEach((ds, j) => ds.forEach((d) => d.setAttribute("r", j === i ? 6 : 4)));
+            tip.textContent = "";
+            el("div", { class: "h" }, tip, LOADS[i] + " at once");
+            let rows = 0;
+            for (const s of present.slice().reverse()) {
+              const v = c.data[s.id][i];
+              if (v == null) continue;
+              const r = el("div", { class: "r" }, tip);
+              el("i", { style: "background:" + s.color }, r);
+              el("b", null, r, c.fmt(v));
+              el("span", null, r, s.label);
+              rows++;
+            }
+            if (!rows) el("div", { class: "r" }, tip, "not measured at this load");
+            const box = svg.getBoundingClientRect(),
+              fb = fig.getBoundingClientRect();
+            const px = box.left - fb.left + (x / W) * box.width,
+              tw = tip.offsetWidth || 170;
+            let left = px + 14;
+            if (left + tw > fb.width - 4) left = px - tw - 14;
+            tip.style.left = Math.max(4, left) + "px";
+            tip.style.top = box.top - fb.top + 8 + "px";
+            tip.classList.add("show");
+          }
+          function hide() {
+            cur = -1;
+            cross.setAttribute("visibility", "hidden");
+            dots.forEach((ds) => ds.forEach((d) => d.setAttribute("r", 4)));
+            tip.classList.remove("show");
+          }
+          function nearest(cx) {
+            const b = svg.getBoundingClientRect();
+            const vx = ((cx - b.left) / b.width) * W;
+            let best = 0,
+              bd = Infinity;
+            LOADS.forEach((L, i) => {
+              const d = Math.abs(xs(L) - vx);
+              if (d < bd) {
+                bd = d;
+                best = i;
+              }
+            });
+            return best;
+          }
+          svg.addEventListener("pointermove", (e) => show(nearest(e.clientX)));
+          svg.addEventListener("pointerleave", hide);
+          svg.addEventListener("focus", () => show(cur < 0 ? 4 : cur));
+          svg.addEventListener("blur", hide);
+          svg.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowRight") {
+              e.preventDefault();
+              show(Math.min(LOADS.length - 1, cur < 0 ? 0 : cur + 1));
+            } else if (e.key === "ArrowLeft") {
+              e.preventDefault();
+              show(Math.max(0, cur < 0 ? 0 : cur - 1));
+            } else if (e.key === "Escape") hide();
+          });
+          el("p", { class: "fig-note" }, fig, c.note);
+          const det = el("details", { class: "tv" }, fig);
+          el("summary", null, det, "Table");
+          const wrap = el("div", { class: "tablewrap" }, det);
+          const tb = el("table", null, wrap);
+          const hr = el("tr", null, el("thead", null, tb));
+          el("th", null, hr, "At once");
+          for (const s of present) el("th", { class: "n" }, hr, s.label);
+          const body = el("tbody", null, tb);
+          LOADS.forEach((L, i) => {
+            const r = el("tr", null, body);
+            el("td", { class: "n", style: "text-align:left" }, r, String(L));
+            for (const s of present) {
+              const v = c.data[s.id][i];
+              el("td", { class: "n" }, r, v == null ? "–" : c.fmt(v));
+            }
+          });
+        }
+        document
+          .querySelectorAll("[data-chart]")
+          .forEach((f) => drawChart(f, f.getAttribute("data-chart")));
+
+        /* Cost bars */
+        const CMP = [
+          {
+            group: "Compute",
+            rows: [
+              {
+                name: "Service CPU",
+                note: "16 answers at once",
+                b: 871,
+                n: 238,
+                fmt: (v) => v + " ms",
+              },
+              {
+                name: "Database CPU",
+                note: "16 answers at once",
+                b: 548,
+                n: 72,
+                fmt: (v) => v + " ms",
+              },
+              { name: "Time to first text", note: "median", b: 1.7, n: 1.3, fmt: (v) => v + " s" },
+            ],
+          },
+          {
+            group: "Database",
+            rows: [
+              {
+                name: "Write-ahead log",
+                note: "what backups and replicas copy",
+                b: 625,
+                n: 38,
+                fmt: (v) => v + " KB",
+              },
+              {
+                name: "Temporary stream rows",
+                note: "deleted 5 minutes after the answer",
+                b: 456,
+                n: 6.7,
+                fmt: (v) => v + " KB",
+              },
+              {
+                name: "Rows kept",
+                note: "messages, turn, saved input, usage",
+                b: 29.7,
+                n: 25,
+                fmt: (v) => v + " KB",
+              },
+            ],
+          },
+        ];
+        const cmp = document.getElementById("cmp");
+        for (const g of CMP) {
+          el("div", { class: "cmp-group" }, cmp, g.group);
+          for (const r of g.rows) {
+            const row = el("div", { class: "cmp-row" }, cmp);
+            const nm = el("div", { class: "cmp-name" }, row, r.name);
+            el("small", null, nm, r.note);
+            const bars = el(
+              "div",
+              {
+                class: "cmp-bars",
+                role: "img",
+                "aria-label": r.name + ": before " + r.fmt(r.b) + ", now " + r.fmt(r.n),
+              },
+              row,
+            );
+            const b1 = el("div", { class: "bar b" }, bars);
+            el("span", { class: "fill", style: "width:calc((100% - 72px) * 1)" }, b1);
+            el("span", null, b1, r.fmt(r.b));
+            const b2 = el("div", { class: "bar n" }, bars);
+            el(
+              "span",
+              {
+                class: "fill",
+                style: "width:calc((100% - 72px) * " + (r.n / r.b).toFixed(4) + ")",
+              },
+              b2,
+            );
+            el("span", null, b2, r.fmt(r.n));
+            el(
+              "span",
+              { class: "delta cmp-delta" },
+              row,
+              "↓ " + Math.round((1 - r.n / r.b) * 100) + "%",
+            );
+          }
+        }
+
+        /* Reliability */
+        const REL = [
+          {
+            t: "PostgreSQL restart mid-answer (0.8 s)",
+            r: "208 of 208 answers completed, 0 duplicate rows. Sends during the restart get a clean 503; running answers retry briefly.",
+            w: "Before: every running answer was interrupted about 27 s later.",
+            s: "ok",
+            l: "Fixed",
+          },
+          {
+            t: "Three instances on one database, 96 to 240 at once",
+            r: "0 failed of 576, 850, 1,032 and 1,157 answers. Readiness stayed ready throughout.",
+            w: "Before: 69 of 1,036 failed at 192 and 79 of 1,188 at 240; readiness flipped to not ready at peak.",
+            s: "ok",
+            l: "Fixed",
+          },
+          {
+            t: "One instance at 96 and 128 at once",
+            r: "0 failed of 494 and 624. Every other send was refused cleanly, never with a 500.",
+            w: "Before: 6 failed, plus HTTP 500s, when synchronized starts exhausted the database pool.",
+            s: "ok",
+            l: "Fixed",
+          },
+          {
+            t: "Current build, one instance, 64 / 96 / 128 at once",
+            r: "0 of 1,526 failed, with the same answer times as before the fixes.",
+            w: "",
+            s: "ok",
+            l: "Passed",
+          },
+          {
+            t: "Current build, three instances, 96 / 144 / 192 at once",
+            r: "No accepted answer failed. At 192, 3 sends were refused cleanly after waiting for a place.",
+            w: "",
+            s: "ok",
+            l: "Passed",
+          },
+          {
+            t: "Far past capacity, 32 to 160 at once",
+            r: "0 failed. The excess waits in the acceptance queue or is refused cleanly.",
+            w: "",
+            s: "ok",
+            l: "Passed",
+          },
+          {
+            t: "Live text to the asking tab under load",
+            r: "321 of 321 asking tabs streamed live up to 64 at once.",
+            w: "Before the slot fix: 73 of 320.",
+            s: "ok",
+            l: "Passed",
+          },
+          {
+            t: "Approvals under load",
+            r: "0 of 624 failed, including continuation and citations.",
+            w: "",
+            s: "ok",
+            l: "Passed",
+          },
+          {
+            t: "Shutdown after a database restart",
+            r: "A connection whose BEGIN fails is discarded instead of leaking, so shutdown no longer hangs.",
+            w: "Before: one leaked connection per blip and a hung shutdown.",
+            s: "ok",
+            l: "Fixed",
+          },
+          {
+            t: "Titles under load",
+            r: "A refused title keeps its claim and is retried by a later answer or the sweep; a transient provider error gets one retry.",
+            w: "Before: at most 2 title jobs ran and the rest were lost.",
+            s: "ok",
+            l: "Fixed",
+          },
+          {
+            t: "Real model, short answers, 3 instances",
+            r: "Up to 24.7 answers/s; 2.5 s per answer at 64 at once. 8,693 succeeded, 1 failed before any text (a model error).",
+            w: "",
+            s: "ok",
+            l: "Passed",
+          },
+          {
+            t: "Real model, long answers, 3 instances",
+            r: "Up to 4 answers/s; 14.5 s per answer at 64 at once, first text in 2 s. 1,316 succeeded, 0 failed.",
+            w: "17 sends got no response at 64 at once; this ran before the stability fixes added clean refusals.",
+            s: "check",
+            l: "Re-run",
+          },
+          {
+            t: "Two-hour soak",
+            r: "5,603 answers, 0 failed, flat memory and latency.",
+            w: "Run on the earlier storage design.",
+            s: "ok",
+            l: "Passed",
+          },
+          {
+            t: "Instance killed or drained",
+            r: "Killed: its answers end after the 30 s lease. Drained: every answer finishes and the process exits cleanly.",
+            w: "",
+            s: "info",
+            l: "By design",
+          },
+          {
+            t: "Model returns 429 or 5xx",
+            r: "The answer fails at once and the person presses Retry.",
+            w: "Automatic retry was deliberately not added.",
+            s: "info",
+            l: "Decided",
+          },
+        ];
+        const rel = document.getElementById("rel");
+        for (const x of REL) {
+          const tr = el("tr", null, rel);
+          el("td", null, tr, x.t);
+          const td = el("td", { class: "res" }, tr, x.r);
+          if (x.w) el("span", { class: "was" }, td, x.w);
+          const st = el("td", null, tr);
+          el("span", { class: "pill " + x.s }, st, x.l);
+        }
+
+        /* Sizing */
+        // Measured on the current build; not user inputs.
+        const SECONDS_PER_ANSWER = 14,
+          ANSWERS_PER_INSTANCE = 64,
+          KEPT_KB_PER_ANSWER = 19,
+          ANSWERS_PER_DB_CORE = 270,
+          WORKDAYS_PER_MONTH = 21;
+        const fields = {
+          people: [1, 1e7],
+          active: [1, 100],
+          mph: [0.1, 1000],
+          mpd: [0, 1000],
+          usd: [0, 10],
+        };
+        function read(id) {
+          const e = document.getElementById(id);
+          const raw = e.value.trim();
+          const n = Number(raw);
+          const [lo, hi] = fields[id];
+          const ok = raw !== "" && Number.isFinite(n) && n >= lo && n <= hi;
+          e.setAttribute("aria-invalid", String(!ok));
+          return ok ? n : null;
+        }
+        const outs = document.getElementById("outs");
+        function out(v, l) {
+          const o = el("div", { class: "out" }, outs);
+          el("div", { class: "v" }, o, v);
+          el("div", { class: "l" }, o, l);
+        }
+        function calc() {
+          const v = {};
+          for (const id in fields) v[id] = read(id);
+          const live =
+            v.people !== null && v.active !== null && v.mph !== null
+              ? ((v.people * (v.active / 100) * v.mph) / 3600) * SECONDS_PER_ANSWER
+              : null;
+          const month =
+            v.people !== null && v.mpd !== null && v.usd !== null
+              ? v.people * v.mpd * WORKDAYS_PER_MONTH * v.usd
+              : null;
+          const growth =
+            v.people !== null && v.mpd !== null
+              ? (v.people * v.mpd * WORKDAYS_PER_MONTH * KEPT_KB_PER_ANSWER) / 1024 / 1024
+              : null;
+          const dash = "–";
+          outs.textContent = "";
+          out(live === null ? dash : fmtInt(Math.ceil(live)), "answers streaming at peak");
+          out(
+            live === null ? dash : String(Math.ceil(live / ANSWERS_PER_INSTANCE) + 1),
+            "service instances, incl. 1 spare",
+          );
+          out(
+            live === null ? dash : String(Math.max(1, Math.ceil(live / ANSWERS_PER_DB_CORE))),
+            "database cores",
+          );
+          out(month === null ? dash : "$" + fmtInt(month), "model cost per month");
+          out(growth === null ? dash : growth.toFixed(1) + " GB", "database growth per month");
+          out(growth === null ? dash : fmtInt(growth * 12) + " GB", "database growth per year");
+        }
+        document.getElementById("basis").textContent =
+          "Based on " +
+          SECONDS_PER_ANSWER +
+          " s per long answer, " +
+          ANSWERS_PER_INSTANCE +
+          " live answers per 1-core instance (the production cap), about " +
+          ANSWERS_PER_DB_CORE +
+          " per database core (estimate), about " +
+          KEPT_KB_PER_ANSWER +
+          " KB kept per answer (measured; nothing is deleted today), and " +
+          WORKDAYS_PER_MONTH +
+          " workdays per month.";
+        for (const id in fields) document.getElementById(id).addEventListener("input", calc);
+        calc();
+      })();
+    </script>
+  </body>
+</html>
